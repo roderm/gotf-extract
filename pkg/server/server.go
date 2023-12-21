@@ -71,7 +71,7 @@ func getFilenameFromURL(u string) (string, error) {
 }
 func extractXZ(w http.ResponseWriter, r *http.Request) {
 	dl := r.URL.Query().Get("url")
-
+	fn := r.URL.Query().Get("name")
 	logrus.WithField("url", dl).Info("start download")
 
 	f, err := getDL(dl)
@@ -86,16 +86,18 @@ func extractXZ(w http.ResponseWriter, r *http.Request) {
 	defer f.Body.Close()
 	logrus.WithField("status", f.Status).Info("read request")
 
-	fn, err := getFilename(f.Header)
-	if err != nil {
-		fn, err = getFilenameFromURL(dl)
+	if fn == "" {
+		fn, err = getFilename(f.Header)
 		if err != nil {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"err": err,
-				"msg": "can't get filename",
-			})
-			logrus.WithField("error", err).Warn("failed reading archive meta")
-			return
+			fn, err = getFilenameFromURL(dl)
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"err": err,
+					"msg": "can't get filename",
+				})
+				logrus.WithField("error", err).Warn("failed reading archive meta")
+				return
+			}
 		}
 	}
 	ex, err := getExtractor(fn)

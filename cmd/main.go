@@ -42,6 +42,7 @@ func main() {
 				return err
 			}
 		}
+		logrus.ParseLevel(c.String("log.level"))
 		return nil
 	}
 	app.Action = func(c *cli.Context) error {

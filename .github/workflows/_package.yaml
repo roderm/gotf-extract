@@ -1,0 +1,79 @@
+name: build unix packages
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "tag for the containers"
+        default: ""
+        required: true
+        type: string
+
+jobs:
+  deb-package:
+    runs-on: [ubuntu-latest]
+    strategy:
+      matrix:
+        arch: ["amd64", "arm64"]
+    env:
+      TMP: /tmp/
+      TMPDIR: /tmp/
+    steps:
+      - name: default config-file
+        run: |
+          rm -rf .debpkg
+          mkdir -p .debpkg/etc/gotf-extract
+          cat << EOF > .debpkg/etc/gotf-extract/config.yaml
+          port: 8639
+          address: 0.0.0.0
+          log:
+            level: warn
+          EOF
+      - name: service-file
+        run: |
+          mkdir -p .debpkg/lib/systemd/system
+          cat << EOF > .debpkg/lib/systemd/system/gotf-extract.service
+          [Unit]
+          Description=Go on the Fly extract
+          After=network-online.target
+          Wants=network-online.target systemd-networkd-wait-online.service mysql.service
+
+          [Service]
+          Restart=on-abnormal
+
+          WorkingDirectory=/etc/gotf-extract
+          ExecStart=/usr/bin/gotf-extract --config /etc/gotf-extract/config.yaml goridge
+
+          [Install]
+          WantedBy=multi-user.target
+
+          EOF
+          mkdir -p .debpkg/DEBIAN
+          touch .debpkg/DEBIAN/postinst
+          echo -e "systemctl daemon-reload" >> .debpkg/DEBIAN/postinst
+          echo -e "systemctl enable gotf-extract.service" >> .debpkg/DEBIAN/postinst
+          chmod +x .debpkg/DEBIAN/postinst
+          touch .debpkg/DEBIAN/conffiles
+          echo -e "/etc/gotf-extract/config.yaml" >> .debpkg/DEBIAN/conffiles
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: gotf-extract-${{ inputs.tag }}_linux_${{ matrix.arch }}
+          path: .debpkg/usr/bin
+      - run: |
+          mv .debpkg/usr/bin/gotf-extract-${{ inputs.tag }}_linux_${{ matrix.arch }} .debpkg/usr/bin/gotf-extract
+          chmod +x .debpkg/usr/bin/gotf-extract
+
+      - uses: jiro4989/build-deb-action@v2
+        with:
+          package: gotf-extract
+          package_root: .debpkg
+          maintainer: eyevip cloud AG
+          version: v0.0.0
+          arch: ${{ matrix.arch }}
+          desc: an eyevip service
+      - name: rename package
+        run: mv gotf-extract_0.0.0_${{ matrix.arch }}.deb gotf-extract_${{ inputs.tag }}_${{ matrix.arch }}.deb
+      - uses: actions/upload-artifact@v3
+        with:
+          name: gotf-extract_${{ inputs.tag }}_${{ matrix.arch }}.deb
+          path: gotf-extract_${{ inputs.tag }}_${{ matrix.arch }}.deb

@@ -25,3 +25,17 @@ jobs:
     with:
       tag: "${{ needs.getVersion.outputs.tag }}"
       dockerfile: ./docker/alpine/Dockerfile
+
+  package:
+    needs: [getVersion]
+    uses: ./.github/workflows/_binary.yaml
+    secrets: inherit
+    with:
+      tag: "${{ needs.getVersion.outputs.tag }}"
+
+  binary:
+    needs: [package]
+    uses: ./.github/workflows/_package.yaml
+    secrets: inherit
+    with:
+      tag: "${{ needs.getVersion.outputs.tag }}"

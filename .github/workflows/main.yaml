@@ -14,3 +14,16 @@ jobs:
     with:
       tag: "latest"
       dockerfile: ./docker/alpine/Dockerfile
+
+  package:
+    uses: ./.github/workflows/_binary.yaml
+    secrets: inherit
+    with:
+      tag: "latest"
+
+  binary:
+    needs: [package]
+    uses: ./.github/workflows/_package.yaml
+    secrets: inherit
+    with:
+      tag: "latest"

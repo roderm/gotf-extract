@@ -1,0 +1,16 @@
+name: build docker-image
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  docker:
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/_docker.yaml
+    secrets: inherit
+    with:
+      tag: "latest"
+      dockerfile: ./docker/alpine/Dockerfile

@@ -11,8 +11,11 @@ import (
 	"github.com/urfave/cli/v2/altsrc"
 )
 
+var Version = "develop"
+
 func main() {
 	app := cli.NewApp()
+	app.Version = Version
 
 	app.Flags = []cli.Flag{
 		&cli.PathFlag{

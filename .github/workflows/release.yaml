@@ -1,0 +1,27 @@
+name: test and build
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+jobs:
+  getVersion:
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Get Tag
+        shell: bash
+        id: tagname
+        run: echo "TAG=$(echo ${GITHUB_REF#refs/tags/} | tr / -)" >> $GITHUB_OUTPUT
+    outputs:
+      tag: ${{ steps.tagname.outputs.TAG }}
+
+  docker:
+    permissions:
+      contents: read
+      packages: write
+    needs: [getVersion]
+    uses: ./.github/workflows/_docker.yaml
+    secrets: inherit
+    with:
+      tag: "${{ needs.getVersion.outputs.tag }}"
+      dockerfile: ./docker/alpine/Dockerfile
